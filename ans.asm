@@ -8,14 +8,14 @@ section .data
     one_vector: dq 1, 1, 1, 1
 
 ;-------------------------------------
-    first_matrix: dd 100 DUP(0.0)
+    fixed_matrix_size: dq 100
+    first_matrix: dd 10000 DUP(0.0)
     first_matrix_size: dq 3
-    second_matrix: dd 100 DUP(0.0)
+    second_matrix: dd 10000 DUP(0.0)
     second_matrix_size: dq 3
-    normal_multiplication_result: dd 100 DUP(0.0)
-    parallel_multiplication_result: dd 100 DUP(0.0)
-    convolution_result: dd 100 DUP(0.0)
-    reserved_vector: dd 4 DUP(0.0)
+    normal_multiplication_result: dd 10000 DUP(0.0)
+    parallel_multiplication_result: dd 10000 DUP(0.0)
+    convolution_result: dd 10000 DUP(0.0)
 
 ;-------------------------------------
     matrix_input_msg: dd "Please enter the matrix:", 0
@@ -69,7 +69,6 @@ normal_multiplication_parallel:
     push r15                                                 
     sub rsp, 8   
     
-    call fill_with_zero
     call get_first_matrix
     call get_second_matrix
 
@@ -97,7 +96,6 @@ call_convolution:
     push r15                                                 
     sub rsp, 8   
     
-    call fill_with_zero
     call get_first_matrix
     call get_second_matrix
     call convolution_nonparallel
@@ -184,19 +182,28 @@ read_matrix:                        ;read matrix of size rax and put in [rdi]
     push r15                                                 
     sub rsp, 8
 
-        imul rax                        ;rax is the matrix size, also the loop counter
-                                        ;calculate the number of elements to be scanned
-        mov r12, rdi                    ;rdi is memory allocated for matrix
-        mov r13, rax                    ;save the value of matrix_size ^ 2
-        xor rbx, rbx                    ;used as counter - unchanged when calling scanf
+    mov r12, rdi                    ;rdi is memory allocated for matrix
+    mov r13, rax                    ;save the value of matrix_size
+    call fill_with_zero
 
-    get_input:
-        call read_float
-        movd xmm0, eax
-        movss [r12 + 4 * rbx], xmm0     ;put the input value in rbx'th index
-        inc rbx
-        cmp rbx, r13
-        jl get_input                    ;loop for matrix_size^2 times
+    xor r14, r14
+    get_input_i:
+        xor rbx, rbx
+        get_input_j:
+            call read_float
+            movd xmm0, eax
+
+            mov rdi, r14
+            mov rax, rbx
+            call index_at_ij
+            movss [r12 + 4 * rax], xmm0     ;put the input value in rax'th index
+
+            inc rbx
+            cmp rbx, r13
+            jl get_input_j                    ;loop for matrix_size times
+        inc r14
+        cmp r14, r13
+        jl get_input_i                    ;loop for matrix_size times
 
     add rsp, 8
 	pop r15                                             
@@ -217,26 +224,27 @@ print_matrix:
     push r15                                                 
     sub rsp, 8
 
-        mov r12, rdi                    ;rdi is where matrix is saved
-        mov r13, rax                    ;save the value of matrix_size
-        xor r14, r14                    ;used as counter - unchanged when calling printf
+    mov r12, rdi                    ;rdi is where matrix is saved
+    mov r13, rax                    ;save the value of matrix_size
+    xor r14, r14                    ;used as counter - unchanged when calling printf
 
     print_row:
         xor r15, r15                    ;used as counter - unchanged when calling printf
 
         print_indice:
-            mov rax, r14
-            imul r13                        ;formula for index r12 + 4 * (r14 * r13 + r15)
-            add rax, r15                    ;calculate the index to be printed
+            mov rdi, r14
+            mov rax, r15                    ;calculate the index to be printed
+            call index_at_ij
             movss xmm0, [r12 + 4 * rax]     ;put the output value in xmm0
-
             call print_float
+
             inc r15
             cmp r15, r13
             jl print_indice                 ;loop for matrix_size^2 times
         
         mov rdi, new_line                   ;going to next row - print new line
         call print_string
+
         inc r14
         cmp r14, r13
         jl print_row
@@ -258,13 +266,17 @@ get_first_matrix:
     push r14                                            
     push r15                                                 
     sub rsp, 8
+
         call get_input_matrix_size
         mov qword[first_matrix_size], rax
+
         mov rdi, matrix_input_msg
         call print_string
+
         mov rax, qword[first_matrix_size]
         mov rdi, first_matrix
         call read_matrix
+
         call read_char
     add rsp, 8
 	pop r15                                             
@@ -286,8 +298,10 @@ get_second_matrix:
     sub rsp, 8
         call get_input_matrix_size
         mov qword[second_matrix_size], rax
+
         mov rdi, matrix_input_msg
         call print_string
+
         mov rax, qword[second_matrix_size]
         mov rdi, second_matrix
         call read_matrix
@@ -300,7 +314,7 @@ get_second_matrix:
     pop rbp
     ret
 ;----------------------------------------------------------------------------------------
-index_at_ij_first_matrix:                        ;row is at rdi
+index_at_ij:                        ;row is at rdi
     push rbp                        ;column is at rax                     
     push rbx                                                  
     push r12                                          
@@ -311,30 +325,7 @@ index_at_ij_first_matrix:                        ;row is at rdi
 
         mov r12, rax
         mov rax, rdi
-        imul qword[first_matrix_size]       ;formula for index 4 * (r13 * size + r12)
-        add rax, r12                        ;calculate the index to be printed
-
-    add rsp, 8
-	pop r15                                             
-	pop r14                                             
-	pop r13                                             
-	pop r12                                             
-    pop rbx                                             
-    pop rbp
-    ret
-
-index_at_ij_second_matrix:          ;row is at rdi
-    push rbp                        ;column is at rax                     
-    push rbx                                                  
-    push r12                                          
-    push r13                                            
-    push r14                                            
-    push r15                                                 
-    sub rsp, 8
-
-        mov r12, rax
-        mov rax, rdi
-        imul qword[second_matrix_size]      ;formula for index 4 * (r13 * size + r12)
+        imul qword[fixed_matrix_size]       ;formula for index 4 * (r13 * size + r12)
         add rax, r12                        ;calculate the index to be printed
 
     add rsp, 8
@@ -355,18 +346,23 @@ fill_with_zero:
     push r15                                                 
     sub rsp, 8
 
-    mov r12, 10
-    imul r12                        ;rax is the matrix size, also the loop counter
-                                    ;calculate the number of elements to be scanned
-    xor rbx, rbx                    ;used as counter - unchanged when calling scanf
+    xor r14, r14
+    put_zero_i:
+        xor rbx, rbx
+        put_zero_j:
+            movd xmm0, [zero]
 
-    put_zero:
-        movd xmm0, [zero]
-        movss [first_matrix + 4 * rbx], xmm0     ;put the input value in rbx'th index
-        movss [second_matrix + 4 * rbx], xmm0     ;put the input value in rbx'th index
-        inc rbx
-        cmp rbx, r12
-        jl put_zero                    ;loop for matrix_size^2 times
+            mov rdi, r14
+            mov rax, rbx
+            call index_at_ij
+            movss [r12 + 4 * rax], xmm0     ;put the input value in rax'th index
+
+            inc rbx
+            cmp rbx, r13
+            jl put_zero_j                    ;loop for matrix_size times
+        inc r14
+        cmp r14, r13
+        jl put_zero_i                    ;loop for matrix_size times
 
 
     add rsp, 8
@@ -396,13 +392,12 @@ multiply_square_matrices_normal:
             dot_product:
                 mov rdi, r12
                 mov rax, r14
-                call index_at_ij_first_matrix
+                call index_at_ij
                 movss xmm0, [first_matrix + 4 * rax]  
 
                 mov rdi, r14
                 mov rax, r13
-                call index_at_ij_first_matrix
-
+                call index_at_ij
                 mulss xmm0, [second_matrix + 4 * rax]
                 addss xmm1, xmm0
 
@@ -413,7 +408,7 @@ multiply_square_matrices_normal:
 
             mov rdi, r12
             mov rax, r13
-            call index_at_ij_first_matrix
+            call index_at_ij
             movss [normal_multiplication_result + rax * 4], xmm1
 
             inc r13
@@ -452,26 +447,20 @@ multiply_square_matrices_parallel:
             for_j:
                 mov rdi, r12
                 mov rax, r13
-                call index_at_ij_first_matrix
-                movss xmm0, [first_matrix + 4 * rax]
+                call index_at_ij
 
-                movss [reserved_vector], xmm0
-                movss [reserved_vector + 4], xmm0
-                movss [reserved_vector + 8], xmm0
-                movss [reserved_vector + 12], xmm0
-
-                movups xmm0, [reserved_vector]
+                vbroadcastss xmm0, [first_matrix + 4 * rax]
 
                 mov rdi, r13
                 mov rax, r14
-                call index_at_ij_first_matrix
+                call index_at_ij
 
                 movups xmm1, [second_matrix + 4*rax]
-                mulss xmm0, xmm1
+                mulps xmm0, xmm1
 
                 mov rdi, r12
                 mov rax, r14
-                call index_at_ij_first_matrix
+                call index_at_ij
 
                 movups xmm1, [parallel_multiplication_result + 4 * rax]
                 addps xmm1, xmm0
@@ -482,9 +471,6 @@ multiply_square_matrices_parallel:
                 cmp r14, [first_matrix_size]
                 jl for_j
 
-            mov rdi, parallel_multiplication_result
-            mov rax, qword[first_matrix_size]
-            call print_matrix
 
             inc r13
             cmp r13, [first_matrix_size]
@@ -503,31 +489,6 @@ multiply_square_matrices_parallel:
     pop rbp
     ret
 
-convolution_result_index_at_ij:     ;row is at rdi
-    push rbp                        ;column is at rax                     
-    push rbx                                                  
-    push r12                                          
-    push r13                                            
-    push r14                                            
-    push r15                                                 
-    sub rsp, 8
-
-        mov r12, rax
-        mov rax, rdi
-        mov r13, [first_matrix_size]
-        sub r13, [second_matrix_size]
-        inc r13
-        imul r13                            ;formula for index 4 * (r13 * size + r12)
-        add rax, r12                        ;calculate the index to be printed
-
-    add rsp, 8
-	pop r15                                             
-	pop r14                                             
-	pop r13                                             
-	pop r12                                             
-    pop rbx                                             
-    pop rbp
-    ret
 
 convolution_nonparallel:
     push rbp                                         
@@ -560,13 +521,13 @@ convolution_nonparallel:
                     add rdi, r14
                     mov rax, r13
                     add rax, r15
-                    call index_at_ij_first_matrix                                ;calculate index of first_matrix[i + k][j + l]
+                    call index_at_ij                               ;calculate index of first_matrix[i + k][j + l]
 
                     movss xmm1, [first_matrix + 4*rax]              ;xmm1 = first_matrix[i + k][j + l]
 
                     mov rdi, r14    
                     mov rax, r15
-                    call index_at_ij_second_matrix                  ;calculate index of second_matrix[k][l]
+                    call index_at_ij                  ;calculate index of second_matrix[k][l]
 
                     movss xmm2, [second_matrix + 4*rax]             ;xmm2 = second_matrix[k][l]
 
@@ -574,7 +535,7 @@ convolution_nonparallel:
 
                     mov rdi, r12
                     mov rax, r13
-                    call convolution_result_index_at_ij             ;calculate index of convolution_result[i][j]
+                    call index_at_ij             ;calculate index of convolution_result[i][j]
 
                     movss xmm0, [convolution_result + 4*rax]
                     addss xmm0, xmm1
@@ -639,13 +600,13 @@ convolution_parallel:
                     add rdi, r14
                     mov rax, r13
                     add rax, r15
-                    call index_at_ij_first_matrix                   ;calculate index of first_matrix[i + k][j + l]
+                    call index_at_ij                ;calculate index of first_matrix[i + k][j + l]
 
                     movups xmm1, [first_matrix + 4*rax]             ;xmm1 = first_matrix[i + k][j + l]
 
                     mov rdi, r14    
                     mov rax, r15
-                    call index_at_ij_second_matrix                  ;calculate index of second_matrix[k][l]
+                    call index_at_ij                  ;calculate index of second_matrix[k][l]
 
                     movups xmm2, [second_matrix + 4*rax]            ;xmm2 = second_matrix[k][l]
 
@@ -653,7 +614,7 @@ convolution_parallel:
 
                     mov rdi, r12
                     mov rax, r13
-                    call convolution_result_index_at_ij             ;calculate index of convolution_result[i][j]
+                    call index_at_ij             ;calculate index of convolution_result[i][j]
 
                     movss xmm0, [convolution_result + 4*rax]
                     addss xmm0, xmm1
