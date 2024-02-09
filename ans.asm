@@ -27,7 +27,10 @@ section .data
 segment .text
     global normal_multiplication_nonparallel  
     global normal_multiplication_parallel 
-    global call_convolution   
+    global normal_convolution  
+    global parallel_convolution 
+    extern calculate_time_spent
+    extern start_clock
     extern printf                                       
     extern scanf    
     extern puts 
@@ -45,7 +48,9 @@ normal_multiplication_nonparallel:
     
     call get_first_matrix
     call get_second_matrix
+    call start_clock
     call multiply_square_matrices_normal
+    call calculate_time_spent
 
     mov rdi, normal_multiplication_result
     mov rax, qword[first_matrix_size]
@@ -87,7 +92,7 @@ normal_multiplication_parallel:
     pop rbp                                             
     ret
 
-call_convolution:
+normal_convolution:
     push rbp                                            
     push rbx                                            
     push r12                                            
@@ -99,6 +104,34 @@ call_convolution:
     call get_first_matrix
     call get_second_matrix
     call convolution_nonparallel
+
+    mov rdi, convolution_result
+    mov rax, qword[first_matrix_size]
+    sub rax, qword[second_matrix_size]
+    inc rax
+    call print_matrix
+    
+    add rsp, 8
+	pop r15                                             
+	pop r14                                             
+	pop r13                                             
+	pop r12                                             
+    pop rbx                                             
+    pop rbp                                             
+    ret
+
+parallel_convolution:
+    push rbp                                            
+    push rbx                                            
+    push r12                                            
+    push r13                                            
+    push r14                                            
+    push r15                                                 
+    sub rsp, 8   
+    
+    call get_first_matrix
+    call get_second_matrix
+    call convolution_parallel
 
     mov rdi, convolution_result
     mov rax, qword[first_matrix_size]
@@ -610,17 +643,17 @@ convolution_parallel:
 
                     movups xmm2, [second_matrix + 4*rax]            ;xmm2 = second_matrix[k][l]
 
-                    mulss xmm1, xmm2                                ;xmm1 = first_matrix[i + k][j + l] * second_matrix[k][l]
+                    mulps xmm1, xmm2                                ;xmm1 = first_matrix[i + k][j + l] * second_matrix[k][l]
 
                     mov rdi, r12
                     mov rax, r13
                     call index_at_ij             ;calculate index of convolution_result[i][j]
 
-                    movss xmm0, [convolution_result + 4*rax]
-                    addss xmm0, xmm1
-                    movss [convolution_result + 4*rax], xmm0
+                    movups xmm0, [convolution_result + 4*rax]
+                    addps xmm0, xmm1
+                    movups [convolution_result + 4*rax], xmm0
                     
-                    inc r15
+                    add r15, 4
                     cmp r15, [second_matrix_size]
                     jl forth_loop_parallel
                 inc r14

@@ -1,8 +1,11 @@
 #include "commandHandler.c"
 #include "validation.c"
+#include "timeCalculation.c"
+
 void normal_multiplication_nonparallel();
 void normal_multiplication_parallel();
-void call_convolution();
+void normal_convolution();
+void parallel_convolution();
 
 int main() {
   int program_type = choose_program();
@@ -18,9 +21,12 @@ int main() {
       normal_multiplication_parallel();
       break;
     case 4:
-      call_convolution();
+      normal_convolution();
       break;
     case 5:
+      parallel_convolution();
+      break;
+    case 6:
       system("python3 pythonConvolution.py");
       break;
   }
