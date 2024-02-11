@@ -1,20 +1,37 @@
 #include <stdio.h>
 
-char initialMessage[] = "Welcome to Matrix Multiplier.\nPlease choose your multiplication/Convolution method:\n1. Normal matrix multiplication (implemented by Assembly - without parallelism)\n2. Normal matrix multiplication (implemented by high level language - without parallelism)\n3. Normal matrix multiplication (implemented by assembly - using parallelism)\n4. Normal 2D convolution (implemented by assembly)\n5. Parallel 2D convolution (implemented by assembly)\n6. Normal 2D convolution (implemented by python)\n";
+char initialMessage[] = "Welcome to Matrix Multiplier.\nPlease choose your multiplication/Convolution method:\n1. Normal matrix multiplication (implemented by Assembly - without parallelism)\n2. Normal matrix multiplication (implemented by high level language - without parallelism)\n3. Normal matrix multiplication (implemented by assembly - using parallelism)\n4. Normal 2D convolution (implemented by assembly)\n5. Parallel 2D convolution (implemented by assembly)\n6. Normal 2D convolution (implemented by python)\n7. Image Processing Menu\n8. Exit\n";
 char invalidInputError[] = "Invalid input, please try again:\n";
 
 
-int choose_program(){
+int choose_program(int program_number){
     printf("%s", initialMessage);
     int program_type, isint;
     char line[256];
     while (1) {
         fgets(line, sizeof line, stdin);
         isint = sscanf(line, "%d", &program_type);
-        if(isint && program_type <= 6) break;
+        if(isint && program_type <= program_number) break;
         printf("%s", invalidInputError);
     }
     printf("---------------------------------------------------------------------------------------\n");
+    return program_type;
+}
+
+int get_yn(){
+    printf("Proceed to next step? Y/N\n");
+    int program_type;
+    char c;
+    char line[256];
+    while (1) {
+        c = getchar();
+        getchar();
+        if (c == 121 || c == 110) break;
+        printf("%s", invalidInputError);
+    }
+    printf("---------------------------------------------------------------------------------------\n");
+    if (c == 121) program_type = 1;
+    else program_type = 0;
     return program_type;
 }
 

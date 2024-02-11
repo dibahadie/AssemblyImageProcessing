@@ -9,7 +9,7 @@ int get_input_matrix_size() {
     while (1) {
         fgets(line, sizeof line, stdin);
         isint = sscanf(line, "%d", &matrix_size);
-        if(isint && matrix_size <= 100) break;
+        if(isint && matrix_size <= 500) break;
         printf("%s", invalidInputError);
     }
     return matrix_size;

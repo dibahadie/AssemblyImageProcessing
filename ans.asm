@@ -9,12 +9,12 @@ section .data
 
 ;-------------------------------------
     fixed_matrix_size: dq 100
-    first_matrix: dd 10000 DUP(0.0)
+    first_matrix: dd 250000 DUP(0.0)
     first_matrix_size: dq 3
-    second_matrix: dd 10000 DUP(0.0)
+    second_matrix: dd 250000 DUP(0.0)
     second_matrix_size: dq 3
-    normal_multiplication_result: dd 10000 DUP(0.0)
-    parallel_multiplication_result: dd 10000 DUP(0.0)
+    normal_multiplication_result: dd 250000 DUP(0.0)
+    parallel_multiplication_result: dd 250000 DUP(0.0)
     convolution_result: dd 10000 DUP(0.0)
 
 ;-------------------------------------
@@ -22,13 +22,14 @@ section .data
     matrix_input_msg_size3: dd "Please enter a 3*3 matrix:", 0
 
 ;-------------------------------------
-    maximum_matrix_size: dd 100
+    maximum_matrix_size: dd 500
 
 segment .text
     global normal_multiplication_nonparallel  
     global normal_multiplication_parallel 
     global normal_convolution  
-    global parallel_convolution 
+    global parallel_convolution
+    global first_matrix 
     extern calculate_time_spent
     extern start_clock
     extern printf                                       
@@ -76,8 +77,10 @@ normal_multiplication_parallel:
     
     call get_first_matrix
     call get_second_matrix
-
+    call start_clock
     call multiply_square_matrices_parallel
+    call calculate_time_spent
+
 
     mov rdi, parallel_multiplication_result
     mov rax, qword[first_matrix_size]
@@ -103,7 +106,10 @@ normal_convolution:
     
     call get_first_matrix
     call get_second_matrix
+    call start_clock
     call convolution_nonparallel
+    call calculate_time_spent
+
 
     mov rdi, convolution_result
     mov rax, qword[first_matrix_size]
@@ -131,7 +137,9 @@ parallel_convolution:
     
     call get_first_matrix
     call get_second_matrix
+    call start_clock
     call convolution_parallel
+    call calculate_time_spent
 
     mov rdi, convolution_result
     mov rax, qword[first_matrix_size]
@@ -338,6 +346,7 @@ get_second_matrix:
         mov rax, qword[second_matrix_size]
         mov rdi, second_matrix
         call read_matrix
+        call read_char
     add rsp, 8
 	pop r15                                             
 	pop r14                                             
@@ -522,7 +531,6 @@ multiply_square_matrices_parallel:
     pop rbp
     ret
 
-
 convolution_nonparallel:
     push rbp                                         
     push rbx 
@@ -600,7 +608,6 @@ convolution_nonparallel:
     pop rbx                                             
     pop rbp
     ret
-
 
 convolution_parallel:
     push rbp                                         
