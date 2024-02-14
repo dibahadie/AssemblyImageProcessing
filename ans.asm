@@ -1,44 +1,46 @@
+;Diba Hadi
+;Pr Jahangir
+;multiplication and covolution methods
 section .data
-    read_float_format: db "%f", 0
-    print_float_format: db "%f ", 0
-    read_int_format: db "%ld", 0
-    print_int_format: db "%ld ", 0
-    new_line: db "", 0
-    zero: db 0.0
-    one_vector: dq 1, 1, 1, 1
+    read_float_format: db "%f", 0                       ;format for reading float
+    print_float_format: db "%f ", 0                     ;format for printing float
+    read_int_format: db "%ld", 0                        ;format for reading int
+    print_int_format: db "%ld ", 0                      ;format for printing int
+    new_line: db "", 0                                  ;new line string
+    zero: db 0.0                                        ;zero to be loaded in matrices
 
 ;-------------------------------------
-    fixed_matrix_size: dq 100
-    first_matrix: dd 250000 DUP(0.0)
-    first_matrix_size: dq 3
-    second_matrix: dd 250000 DUP(0.0)
-    second_matrix_size: dq 3
-    normal_multiplication_result: dd 250000 DUP(0.0)
-    parallel_multiplication_result: dd 250000 DUP(0.0)
-    convolution_result: dd 10000 DUP(0.0)
+    fixed_matrix_size: dq 512                           ;first matrix size
+    first_matrix_size: dq 512                           ;fixed matrix size
+    first_matrix: dd 262144 DUP(0.0)                    ;first matrix memory reserved
+    second_matrix: dd 262144 DUP(0.0)                   ;second matrix memory reserved
+    second_matrix_size: dq 3                            ;second matrix size
+    normal_multiplication_result: dd 262144 DUP(0.0)    ;result of normal multiplication reserved memory
+    parallel_multiplication_result: dd 262144 DUP(0.0)  ;result of parallel multiplication reserved memory 
+    convolution_result: dd 262144 DUP(0.0)               ;convolution result reserved memory
 
 ;-------------------------------------
-    matrix_input_msg: dd "Please enter the matrix:", 0
-    matrix_input_msg_size3: dd "Please enter a 3*3 matrix:", 0
-
+    matrix_input_msg: dd "Please enter the matrix:", 0              ;message for reading matrix
 ;-------------------------------------
-    maximum_matrix_size: dd 500
 
-segment .text
-    global normal_multiplication_nonparallel  
+
+segment .text                                           ;defining the functions which are called from outside globally
+    global normal_multiplication_nonparallel            ;also defining the functions from outside that are called here by extern  
     global normal_multiplication_parallel 
     global normal_convolution  
     global parallel_convolution
-    global first_matrix 
-    extern calculate_time_spent
-    extern start_clock
+    extern calculate_time_spent                         ;fucntion to calculate time -> timeCalculation.c
+    extern start_clock                                  ;function to start clock -> timeCalculation.c
     extern printf                                       
     extern scanf    
     extern puts 
-    extern get_input_matrix_size  
+    extern get_input_matrix_size                        ;function to get matrix input -> validation.c
     extern getchar                                 
 
+;   funtion to calculate normal multiplication of first and second matrices
 normal_multiplication_nonparallel:
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
 	push rbp                                            
     push rbx                                            
     push r12                                            
@@ -47,15 +49,15 @@ normal_multiplication_nonparallel:
     push r15                                                 
     sub rsp, 8   
     
-    call get_first_matrix
-    call get_second_matrix
-    call start_clock
-    call multiply_square_matrices_normal
-    call calculate_time_spent
+    call get_first_matrix                               ;get first matrix
+    call get_second_matrix                              ;get second matrix
+    call start_clock                                    ;start the clock for counting time
+    call multiply_square_matrices_normal                ;multiply the matrices and store the result
+    call calculate_time_spent                           ;stop the clock and log results
 
-    mov rdi, normal_multiplication_result
-    mov rax, qword[first_matrix_size]
-    call print_matrix
+    mov rdi, normal_multiplication_result               ;address of matrix to be printed
+    mov rax, qword[first_matrix_size]                   ;size of matrix to be printed
+    call print_matrix                                   ;print the result matrix
     
     add rsp, 8
 	pop r15                                             
@@ -66,7 +68,10 @@ normal_multiplication_nonparallel:
     pop rbp                                             
     ret
 
+;   function to calculate matrix multiplication using simd instructions and parellelism
 normal_multiplication_parallel:
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
 	push rbp                                            
     push rbx                                            
     push r12                                            
@@ -75,16 +80,16 @@ normal_multiplication_parallel:
     push r15                                                 
     sub rsp, 8   
     
-    call get_first_matrix
-    call get_second_matrix
-    call start_clock
-    call multiply_square_matrices_parallel
-    call calculate_time_spent
+    call get_first_matrix                               ;get the first matrix
+    call get_second_matrix                              ;get the second matrix
 
+    call start_clock                                    ;mark the start time
+    call multiply_square_matrices_parallel              ;calculate the multiplication
+    call calculate_time_spent                           ;mark the finish time and log results
 
-    mov rdi, parallel_multiplication_result
-    mov rax, qword[first_matrix_size]
-    call print_matrix
+    mov rdi, parallel_multiplication_result             ;address of matrix to be printed
+    mov rax, qword[first_matrix_size]                   ;size of matrix to be printed
+    call print_matrix                                   ;print the result matrix
     
     add rsp, 8
 	pop r15                                             
@@ -95,7 +100,10 @@ normal_multiplication_parallel:
     pop rbp                                             
     ret
 
+;   function to calculate the convolution
 normal_convolution:
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
     push rbp                                            
     push rbx                                            
     push r12                                            
@@ -104,18 +112,18 @@ normal_convolution:
     push r15                                                 
     sub rsp, 8   
     
-    call get_first_matrix
-    call get_second_matrix
-    call start_clock
-    call convolution_nonparallel
-    call calculate_time_spent
+    call get_first_matrix                               ;get the first matrix
+    call get_second_matrix                              ;get the second matrix
+    call start_clock                                    ;mark the start time
+    call convolution_nonparallel                        ;calculate the convolution
+    call calculate_time_spent                           ;mark the finish time
 
 
-    mov rdi, convolution_result
-    mov rax, qword[first_matrix_size]
-    sub rax, qword[second_matrix_size]
-    inc rax
-    call print_matrix
+    mov rdi, convolution_result                         ;address of matrix to be printed
+    mov rax, qword[first_matrix_size]                   
+    sub rax, qword[second_matrix_size]                  ;calculate the size from first and second matrix size
+    inc rax                                             ;size of matrix to be printed
+    call print_matrix                                   ;print the matrix
     
     add rsp, 8
 	pop r15                                             
@@ -126,7 +134,10 @@ normal_convolution:
     pop rbp                                             
     ret
 
+;   function to calculate the convolution
 parallel_convolution:
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
     push rbp                                            
     push rbx                                            
     push r12                                            
@@ -135,17 +146,17 @@ parallel_convolution:
     push r15                                                 
     sub rsp, 8   
     
-    call get_first_matrix
-    call get_second_matrix
-    call start_clock
-    call convolution_parallel
-    call calculate_time_spent
+    call get_first_matrix                               ;get the first matrix
+    call get_second_matrix                              ;get the second matrix
+    call start_clock                                    ;mark the start time
+    call convolution_parallel                           ;calculate convolution
+    call calculate_time_spent                           ;mark the finish time and log results
 
-    mov rdi, convolution_result
-    mov rax, qword[first_matrix_size]
+    mov rdi, convolution_result                         ;address of matrix to be printed
+    mov rax, qword[first_matrix_size]                   ;calculate matrix size
     sub rax, qword[second_matrix_size]
     inc rax
-    call print_matrix
+    call print_matrix                                   ;print the result matrix
     
     add rsp, 8
 	pop r15                                             
@@ -157,9 +168,11 @@ parallel_convolution:
     ret
 
 ;----------------------------------------------------------------------------------------
-read_float:
-    sub rsp, 8                      ;read float and put in eax
-    mov rsi, rsp
+;   these functions are implemented for easier I/O operations
+
+read_float:                         ;read float and put in eax
+    sub rsp, 8                      ;reserve stack space
+    mov rsi, rsp                    ;save rsp
     mov rdi, read_float_format      ;input format
     mov rax, 1                      ;number of arguments
     call scanf                      
@@ -174,7 +187,7 @@ print_float:                        ;print the value of xmm0
     mov rdi, print_float_format     ;output format                                                     
     mov rax, 1                      ;number of arguments                                                                                  
     call printf                                                
-    add rsp, 8
+    add rsp, 8                      ;clearing local variables from stack
     ret
 
 
@@ -215,6 +228,8 @@ read_char:
     ret
 ;--------------------------------------------------------------------------------------------
 read_matrix:                        ;read matrix of size rax and put in [rdi]
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
     push rbp                                            
     push rbx                                            
     push r12                                            
@@ -225,26 +240,26 @@ read_matrix:                        ;read matrix of size rax and put in [rdi]
 
     mov r12, rdi                    ;rdi is memory allocated for matrix
     mov r13, rax                    ;save the value of matrix_size
-    call fill_with_zero
+    call fill_with_zero             ;feel the matrices with zero to avoid unrelated results during pareallel calculation
 
-    xor r14, r14
+    xor r14, r14                    ;first loop counter set to zero
     get_input_i:
-        xor rbx, rbx
+        xor rbx, rbx                ;second loop counter set to zero
         get_input_j:
-            call read_float
-            movd xmm0, eax
+            call read_float         ;read indice
+            movd xmm0, eax          ;move read content to xmm register
 
             mov rdi, r14
             mov rax, rbx
-            call index_at_ij
+            call index_at_ij        ;calculate index of array[r14][rbx]
             movss [r12 + 4 * rax], xmm0     ;put the input value in rax'th index
 
             inc rbx
             cmp rbx, r13
-            jl get_input_j                    ;loop for matrix_size times
+            jl get_input_j                    ;loop for r13 times
         inc r14
         cmp r14, r13
-        jl get_input_i                    ;loop for matrix_size times
+        jl get_input_i                    ;loop for r13 times
 
     add rsp, 8
 	pop r15                                             
@@ -256,7 +271,9 @@ read_matrix:                        ;read matrix of size rax and put in [rdi]
     ret
 
 
-print_matrix:
+print_matrix:                       ;print matrix of size rax and in memory location rdi
+;   these registers are pushed onto the stack before doing the opereation and popped afterwards
+;   therefore they remain unchanged after calling the function
     push rbp                                            
     push rbx                                            
     push r12                                            
@@ -265,30 +282,30 @@ print_matrix:
     push r15                                                 
     sub rsp, 8
 
-    mov r12, rdi                    ;rdi is where matrix is saved
-    mov r13, rax                    ;save the value of matrix_size
-    xor r14, r14                    ;used as counter - unchanged when calling printf
+    mov r12, rdi                    ;rdi is where matrix is saved - save to r12
+    mov r13, rax                    ;save the value of matrix_size in r13
+    xor r14, r14                    ;used as first loop counter - unchanged when calling printf
 
     print_row:
-        xor r15, r15                    ;used as counter - unchanged when calling printf
+        xor r15, r15                    ;used as second loop counter - unchanged when calling printf
 
         print_indice:
             mov rdi, r14
             mov rax, r15                    ;calculate the index to be printed
-            call index_at_ij
+            call index_at_ij                ;calculate array[r14][r15]
             movss xmm0, [r12 + 4 * rax]     ;put the output value in xmm0
             call print_float
 
             inc r15
             cmp r15, r13
-            jl print_indice                 ;loop for matrix_size^2 times
+            jl print_indice                 ;loop for r13 times
         
         mov rdi, new_line                   ;going to next row - print new line
         call print_string
 
         inc r14
         cmp r14, r13
-        jl print_row
+        jl print_row                        ;loop for r13 time
 
     add rsp, 8
 	pop r15                                             
@@ -307,18 +324,17 @@ get_first_matrix:
     push r14                                            
     push r15                                                 
     sub rsp, 8
+        call get_input_matrix_size                      ;function in validation.c - get size
+        mov qword[first_matrix_size], rax               ;move result to memory
 
-        call get_input_matrix_size
-        mov qword[first_matrix_size], rax
+        mov rdi, matrix_input_msg                       ;message to be printed
+        call print_string                               ;print input message
 
-        mov rdi, matrix_input_msg
-        call print_string
-
-        mov rax, qword[first_matrix_size]
-        mov rdi, first_matrix
+        mov rax, qword[first_matrix_size]               ;size of matrix to be printed
+        mov rdi, first_matrix                           ;address of matrix to be printed
         call read_matrix
 
-        call read_char
+        call read_char                                  ;read the \n char
     add rsp, 8
 	pop r15                                             
 	pop r14                                             
@@ -337,16 +353,16 @@ get_second_matrix:
     push r14                                            
     push r15                                                 
     sub rsp, 8
-        call get_input_matrix_size
-        mov qword[second_matrix_size], rax
+        call get_input_matrix_size                      ;function in validation.c
+        mov qword[second_matrix_size], rax              ;move result to memory
 
-        mov rdi, matrix_input_msg
-        call print_string
+        mov rdi, matrix_input_msg                       ;message to be printed
+        call print_string                               ;print input message
 
-        mov rax, qword[second_matrix_size]
-        mov rdi, second_matrix
-        call read_matrix
-        call read_char
+        mov rax, qword[second_matrix_size]              ;size of matrix to be printed
+        mov rdi, second_matrix                          ;address of matrix to be printed
+        call read_matrix                                ;read the matrix
+        call read_char                                  ;read the \n char
     add rsp, 8
 	pop r15                                             
 	pop r14                                             
@@ -367,7 +383,7 @@ index_at_ij:                        ;row is at rdi
 
         mov r12, rax
         mov rax, rdi
-        imul qword[fixed_matrix_size]       ;formula for index 4 * (r13 * size + r12)
+        imul qword[fixed_matrix_size]       ;formula for index 4 * (rdi * size + rax)
         add rax, r12                        ;calculate the index to be printed
 
     add rsp, 8
@@ -379,7 +395,7 @@ index_at_ij:                        ;row is at rdi
     pop rbp
     ret
 
-fill_with_zero:
+fill_with_zero:                             ;fill the first and second matrix with zeros
     push rbp                                         
     push rbx                                         
     push r12                                            
@@ -388,16 +404,16 @@ fill_with_zero:
     push r15                                                 
     sub rsp, 8
 
-    xor r14, r14
-    put_zero_i:
-        xor rbx, rbx
+    xor r14, r14                            ;first loop counter initialized to zero
+    put_zero_i:         
+        xor rbx, rbx                        ;second loop counter initialized to zero
         put_zero_j:
-            movd xmm0, [zero]
+            movd xmm0, [zero]               ;load zero into register
 
-            mov rdi, r14
+            mov rdi, r14                    
             mov rax, rbx
-            call index_at_ij
-            movss [r12 + 4 * rax], xmm0     ;put the input value in rax'th index
+            call index_at_ij                ;calculate index arrat[r14][rbx]
+            movss [r12 + 4 * rax], xmm0     ;put the zero value in rax'th index
 
             inc rbx
             cmp rbx, r13
@@ -425,22 +441,22 @@ multiply_square_matrices_normal:
     push r15                                                 
     sub rsp, 8
     
-    xor r12, r12
-    row_i:
-        xor r13, r13
-        column_j:
-            xor r14, r14
+    xor r12, r12                                            ;first loop counter initialized to zero
+    row_i:                                                  ;loop on rows
+        xor r13, r13                                        ;second loop counter initialized to zero
+        column_j:                                           ;loop on columns
+            xor r14, r14                                    ;third loop counter initialized to zero
             xorps xmm1, xmm1
-            dot_product:
+            dot_product:                                    ;loop for calculating dot product of row and col
                 mov rdi, r12
                 mov rax, r14
-                call index_at_ij
-                movss xmm0, [first_matrix + 4 * rax]  
+                call index_at_ij                            ;calculate array index of array[r12][r14]
+                movss xmm0, [first_matrix + 4 * rax]        ;move value to xmm0
 
                 mov rdi, r14
                 mov rax, r13
-                call index_at_ij
-                mulss xmm0, [second_matrix + 4 * rax]
+                call index_at_ij                            ;calculate array[r14][r13]
+                mulss xmm0, [second_matrix + 4 * rax]       ;do multiplication and add results
                 addss xmm1, xmm0
 
                 inc r14
@@ -450,16 +466,16 @@ multiply_square_matrices_normal:
 
             mov rdi, r12
             mov rax, r13
-            call index_at_ij
-            movss [normal_multiplication_result + rax * 4], xmm1
+            call index_at_ij                                        ;calculate index of array[r12][r13]
+            movss [normal_multiplication_result + rax * 4], xmm1    ;move dot product to destination
 
             inc r13
             cmp r13, [first_matrix_size]
-            jl column_j
+            jl column_j                                             ;loop first_matrix_size times
 
         inc r12
         cmp r12, [first_matrix_size]
-        jl row_i
+        jl row_i                                                    ;loop first_matrix_size times
 
     add rsp, 8
 	pop r15                                             
@@ -479,48 +495,42 @@ multiply_square_matrices_parallel:
     push r15                                                 
     sub rsp, 8
     
-    xor r12, r12
-    for_i:
-        xor r13, r13
-        for_k:
-            xor r14, r14
-            xorps xmm1, xmm1
-            xorps xmm0, xmm0
-            for_j:
-                mov rdi, r12
-                mov rax, r13
-                call index_at_ij
+    xor r12, r12                                            ; Initialize r12 to 0
+    for_i:                                                  ; Outer loop over i
+        xor r13, r13                                        ; Initialize r13 to 0
+        for_k:                                              ; Middle loop over k
+            xor r14, r14                                    ; Initialize r14 to 0
+            for_j:                                          ; Inner loop over j
+                mov rax, r12                                ; Move r12 to rax
+                shl rax, 9                                  ; Shift rax left by 9 bits
+                add rax, r13                                ; calculate array index
+                vbroadcastss xmm0, [first_matrix + 4 * rax] ; Load value from first_matrix into xmm0
 
-                vbroadcastss xmm0, [first_matrix + 4 * rax]
+                mov rax, r13                                ; Move r13 to rax
+                shl rax, 9                                  ; Shift rax left by 9 bits
+                add rax, r14                                ; Add r14 to rax
+                movups xmm1, [second_matrix + 4*rax]        ; Load value from second_matrix into xmm1
+                mulps xmm0, xmm1  ; Multiply xmm0 and xmm1
 
-                mov rdi, r13
-                mov rax, r14
-                call index_at_ij
+                mov rax, r12                                ; Move r12 to rax
+                shl rax, 9                                  ; Shift rax left by 9 bits
+                add rax, r14                                ; Add r14 to rax
+                movups xmm1, [parallel_multiplication_result + 4 * rax]  ; Load value from parallel_multiplication_result into xmm1
+                addps xmm1, xmm0                                         ; Add xmm0 to xmm1
+                movups [parallel_multiplication_result + 4 * rax], xmm1  ; Store result back into parallel_multiplication_result
 
-                movups xmm1, [second_matrix + 4*rax]
-                mulps xmm0, xmm1
-
-                mov rdi, r12
-                mov rax, r14
-                call index_at_ij
-
-                movups xmm1, [parallel_multiplication_result + 4 * rax]
-                addps xmm1, xmm0
-                movups [parallel_multiplication_result + 4 * rax], xmm1
-
-
-                add r14, 4
-                cmp r14, [first_matrix_size]
-                jl for_j
+                add r14, 4                                  ; Increment r14 by 4
+                cmp r14, [first_matrix_size]                ; Compare r14 with first_matrix_size
+                jl for_j                                    ; If r14 < first_matrix_size, jump to for_j
 
 
-            inc r13
-            cmp r13, [first_matrix_size]
-            jl for_k
+            inc r13                                         ; Increment r13
+            cmp r13, [first_matrix_size]                    ; Compare r13 with first_matrix_size
+            jl for_k                                        ; If r13 < first_matrix_size, jump to for_k
 
-        inc r12
-        cmp r12, [first_matrix_size]
-        jl for_i
+        inc r12                                             ; Increment r12
+        cmp r12, [first_matrix_size]                        ; Compare r12 with first_matrix_size
+        jl for_i                                            ; If r12 < first_matrix_size, jump to for_i
 
     add rsp, 8
 	pop r15                                             
@@ -530,6 +540,7 @@ multiply_square_matrices_parallel:
     pop rbx                                             
     pop rbp
     ret
+
 
 convolution_nonparallel:
     push rbp                                         
