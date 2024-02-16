@@ -29,7 +29,7 @@ void crop_result_file() {
     }
     // define the lines we want
     int targetLineStart = 17;
-    int targetLineEnd = 72;
+    int targetLineEnd = 514;
     char line[10000];
     int currentLine = 1;
     // create another file to put the results in

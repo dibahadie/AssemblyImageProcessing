@@ -7,17 +7,19 @@ section .data
     read_int_format: db "%ld", 0                        ;format for reading int
     print_int_format: db "%ld ", 0                      ;format for printing int
     new_line: db "", 0                                  ;new line string
-    zero: db 0.0                                        ;zero to be loaded in matrices
+    zero: dq 0                                          ;zero to be loaded in matrices
+    MAX_SIZE: equ 512
+    MAX_CAPACITY: equ 262144
 
 ;-------------------------------------
-    fixed_matrix_size: dq 512                           ;first matrix size
-    first_matrix_size: dq 512                           ;fixed matrix size
-    first_matrix: dd 262144 DUP(0.0)                    ;first matrix memory reserved
-    second_matrix: dd 262144 DUP(0.0)                   ;second matrix memory reserved
-    second_matrix_size: dq 3                            ;second matrix size
-    normal_multiplication_result: dd 262144 DUP(0.0)    ;result of normal multiplication reserved memory
-    parallel_multiplication_result: dd 262144 DUP(0.0)  ;result of parallel multiplication reserved memory 
-    convolution_result: dd 262144 DUP(0.0)               ;convolution result reserved memory
+    fixed_matrix_size: dq MAX_SIZE                            ;first matrix size
+    first_matrix_size: dq MAX_SIZE                            ;fixed matrix size
+    first_matrix: dd MAX_CAPACITY DUP(0.0)                    ;first matrix memory reserved
+    second_matrix: dd MAX_CAPACITY DUP(0.0)                   ;second matrix memory reserved
+    second_matrix_size: dq MAX_SIZE                           ;second matrix size
+    normal_multiplication_result: dd MAX_CAPACITY DUP(0.0)    ;result of normal multiplication reserved memory
+    parallel_multiplication_result: dd MAX_CAPACITY DUP(0.0)  ;result of parallel multiplication reserved memory 
+    convolution_result: dd MAX_CAPACITY DUP(0.0)              ;convolution result reserved memory
 
 ;-------------------------------------
     matrix_input_msg: dd "Please enter the matrix:", 0              ;message for reading matrix

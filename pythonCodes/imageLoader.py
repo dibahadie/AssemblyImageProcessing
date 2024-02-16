@@ -14,7 +14,7 @@ def load_and_preprocess_image(image_path):
     return gray_image
 
 # path of image to be processed
-image_path = 'ImageProcessing/in/image.png'
+image_path = 'ImageProcessing/in/image.jpg'
 image = load_and_preprocess_image(image_path)
 # convert image to a numpy array
 image = np.array(image)
@@ -32,6 +32,6 @@ f = open("ImageProcessing/in/imageArray.txt", "a")
 # append the input array as the first matrix
 np.savetxt(f, image, fmt ='%.0f')
 # append the kernel array and the exit code from program
-f.write("3\n0 1 0 1 1 1 0 1 0\n8\n")
+f.write("3\n0 -1 0 -1 4 -1 0 -1 0\n8\n")
 # close file
 f.close()
